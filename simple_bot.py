@@ -12,6 +12,8 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
+import threading
+import time
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -39,10 +41,180 @@ ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "800133246"))
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID", "")
 REQUIRED_CONFIRMATIONS = 3  # 3 человека + бот = 4 участника в группе
 
+class NotificationSystem:
+    """Простая система уведомлений"""
+    
+    def __init__(self, bot_token: str, db_path: str, group_chat_id: str):
+        self.bot_token = bot_token
+        self.db_path = db_path
+        self.group_chat_id = group_chat_id
+        self.running = False
+        self.thread = None
+        
+    def start(self):
+        """Запуск системы уведомлений"""
+        if self.running:
+            return
+            
+        self.running = True
+        self.thread = threading.Thread(target=self._notification_loop, daemon=True)
+        self.thread.start()
+        logger.info("🔔 Notification system started")
+        
+    def stop(self):
+        """Остановка системы уведомлений"""
+        self.running = False
+        if self.thread:
+            self.thread.join()
+        logger.info("🔔 Notification system stopped")
+        
+    def _notification_loop(self):
+        """Основной цикл уведомлений"""
+        while self.running:
+            try:
+                self._check_notifications()
+                time.sleep(60)  # Проверяем каждую минуту
+            except Exception as e:
+                logger.error(f"❌ Error in notification loop: {e}")
+                time.sleep(60)
+                
+    def _check_notifications(self):
+        """Проверка уведомлений"""
+        try:
+            # Проверяем события, которые требуют уведомлений
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # События за 5 дней до даты
+            cursor.execute('''
+                SELECT * FROM events 
+                WHERE status = 'scheduled' 
+                AND datetime IS NOT NULL
+                AND datetime != ''
+            ''')
+            
+            events = cursor.fetchall()
+            conn.close()
+            
+            for event in events:
+                self._check_event_notifications(event)
+                
+        except Exception as e:
+            logger.error(f"❌ Error checking notifications: {e}")
+            
+    def _check_event_notifications(self, event):
+        """Проверка уведомлений для конкретного события"""
+        try:
+            event_id, chat_id, restaurant_name, event_datetime, status, created_at = event
+            
+            if not event_datetime:
+                return
+                
+            # Парсим дату события
+            try:
+                event_date = datetime.strptime(event_datetime, "%d.%m.%Y %H:%M")
+                now = datetime.now()
+                
+                # Уведомление за 5 дней
+                five_days_before = event_date - timedelta(days=5)
+                if now.date() == five_days_before.date():
+                    self._send_reminder_notification(chat_id, restaurant_name, event_datetime, "5 дней")
+                    
+                # Уведомление в день события (утром)
+                if now.date() == event_date.date() and now.hour == 9:
+                    self._send_reminder_notification(chat_id, restaurant_name, event_datetime, "сегодня")
+                    
+                # Уведомление в день события (вечером)
+                if now.date() == event_date.date() and now.hour == 18:
+                    self._send_reminder_notification(chat_id, restaurant_name, event_datetime, "сегодня вечером")
+                    
+                # Запрос отзыва через 3 часа после события
+                three_hours_after = event_date + timedelta(hours=3)
+                if now >= three_hours_after and status == 'scheduled':
+                    self._request_reviews(event_id, chat_id, restaurant_name)
+                    
+            except ValueError:
+                logger.error(f"❌ Invalid datetime format: {event_datetime}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error checking event notifications: {e}")
+            
+    def _send_reminder_notification(self, chat_id: int, restaurant_name: str, event_datetime: str, when: str):
+        """Отправка напоминания"""
+        try:
+            import requests
+            
+            message = f"""
+🔔 **Напоминание о событии**
+
+🍽️ **Ресторан:** {restaurant_name}
+📅 **Дата и время:** {event_datetime}
+⏰ **До события:** {when}
+
+Не забудьте о встрече! 🍴
+            """
+            
+            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            data = {
+                'chat_id': chat_id,
+                'text': message,
+                'parse_mode': 'Markdown'
+            }
+            
+            response = requests.post(url, data=data)
+            if response.status_code == 200:
+                logger.info(f"✅ Reminder sent for {restaurant_name}")
+            else:
+                logger.error(f"❌ Failed to send reminder: {response.text}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error sending reminder: {e}")
+            
+    def _request_reviews(self, event_id: int, chat_id: int, restaurant_name: str):
+        """Запрос отзывов"""
+        try:
+            import requests
+            
+            # Обновляем статус события
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE events SET status = 'review_requested' WHERE id = ?
+            ''', (event_id,))
+            conn.commit()
+            conn.close()
+            
+            # Отправляем запрос отзыва
+            message = f"""
+📝 **Время оставить отзыв!**
+
+🍽️ **Ресторан:** {restaurant_name}
+
+Пожалуйста, оставьте отзыв о посещении ресторана.
+Ваше мнение поможет другим участникам группы! ⭐
+            """
+            
+            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            data = {
+                'chat_id': chat_id,
+                'text': message,
+                'parse_mode': 'Markdown'
+            }
+            
+            response = requests.post(url, data=data)
+            if response.status_code == 200:
+                logger.info(f"✅ Review request sent for {restaurant_name}")
+            else:
+                logger.error(f"❌ Failed to send review request: {response.text}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error requesting reviews: {e}")
+
 class SimpleRestaurantBot:
     def __init__(self):
         self.db_path = "restaurant_bot.db"
         self.restaurants = []
+        self.notification_system = None
         self.init_database()
         self.load_restaurants()
         
@@ -120,6 +292,15 @@ class SimpleRestaurantBot:
         except Exception as e:
             logger.error(f"❌ Error loading restaurants: {e}")
             self.restaurants = []
+            
+    def start_notifications(self):
+        """Запуск системы уведомлений"""
+        if GROUP_CHAT_ID and not self.notification_system:
+            self.notification_system = NotificationSystem(
+                BOT_TOKEN, self.db_path, GROUP_CHAT_ID
+            )
+            self.notification_system.start()
+            logger.info("🔔 Notification system started")
             
     def get_active_event(self, chat_id: int) -> Optional[Dict]:
         """Получить активное событие"""
@@ -549,6 +730,9 @@ def main():
     
     bot = SimpleRestaurantBot()
     
+    # Запускаем систему уведомлений
+    bot.start_notifications()
+    
     # Создаем приложение
     application = Application.builder().token(BOT_TOKEN).build()
     
@@ -573,6 +757,8 @@ def main():
         application.run_polling()
     except KeyboardInterrupt:
         print("\n👋 Bot stopped by user")
+        if bot.notification_system:
+            bot.notification_system.stop()
 
 if __name__ == "__main__":
     main()
