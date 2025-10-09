@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simple Restaurant Bot - Working Version for Hosting
-Based on working project structure with notifications
+BOTHOST CACHE FORCE UPDATE - Markdown Fixed
 """
 
 import os
