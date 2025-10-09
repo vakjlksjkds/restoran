@@ -333,27 +333,25 @@ class SimpleRestaurantBot:
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Команда /start"""
-        welcome_text = """
-🍽️ **Добро пожаловать в Perfect Restaurant Bot!**
+        welcome_text = """🍽️ *Добро пожаловать в Perfect Restaurant Bot!*
 
 Этот бот поможет вашей группе из 3 человек выбирать рестораны для совместных походов.
 
-**Доступные команды:**
+*Доступные команды:*
 /random - Выбрать случайный ресторан
 /stats - Статистика посещений
 /next_event - Ближайшее событие
 /cancel_event - Отменить событие (только админ)
 /clear_reviews - Очистить отзывы (только админ)
 
-**Как это работает:**
+*Как это работает:*
 1. Используйте /random для выбора ресторана
 2. Все 3 участника должны подтвердить участие
 3. Выберите дату и время
 4. Получите детали бронирования
 5. Оставьте отзыв после посещения
 
-Приятного аппетита! 🍴
-        """
+Приятного аппетита! 🍴"""
         await update.message.reply_text(welcome_text, parse_mode='Markdown')
 
     async def random_restaurant(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -370,7 +368,7 @@ class SimpleRestaurantBot:
             
             await update.message.reply_text(
                 f"⚠️ У вас уже есть активное событие:\n"
-                f"🍽️ **{active_event['restaurant_name']}**\n"
+                f"🍽️ *{active_event['restaurant_name']}*\n"
                 f"📅 Статус: {active_event['status']}\n\n"
                 f"Сначала завершите или отмените текущее событие.",
                 reply_markup=reply_markup,
@@ -400,16 +398,14 @@ class SimpleRestaurantBot:
         conn.close()
         
         # Формируем карточку ресторана
-        card_text = f"""
-🍽️ **{restaurant['name']}**
+        card_text = f"""🍽️ *{restaurant['name']}*
 
-📍 **Адрес:** {restaurant.get('address', 'Не указан')}
-🍴 **Кухня:** {restaurant.get('cuisine', 'Не указана')}
-💰 **Средний чек:** {restaurant.get('average_check', 'Не указан')}
-📝 **Описание:** {restaurant.get('description', 'Нет описания')}
+📍 *Адрес:* {restaurant.get('address', 'Не указан')}
+🍴 *Кухня:* {restaurant.get('cuisine', 'Не указана')}
+💰 *Средний чек:* {restaurant.get('average_check', 'Не указан')}
+📝 *Описание:* {restaurant.get('description', 'Нет описания')}
 
-👥 **Подтверждения:** 0/{REQUIRED_CONFIRMATIONS}
-        """
+👥 *Подтверждения:* 0/{REQUIRED_CONFIRMATIONS}"""
         
         keyboard = [
             [InlineKeyboardButton("✅ Я иду!", callback_data=f"confirm_{event_id}")],
@@ -472,13 +468,11 @@ class SimpleRestaurantBot:
         conn.close()
         
         # Обновляем сообщение
-        card_text = f"""
-🍽️ **{restaurant_name}**
+        card_text = f"""🍽️ *{restaurant_name}*
 
-👥 **Подтверждения:** {confirmations_count}/{REQUIRED_CONFIRMATIONS}
+👥 *Подтверждения:* {confirmations_count}/{REQUIRED_CONFIRMATIONS}
 
-✅ **Участники:**
-        """
+✅ *Участники:*"""
         
         # Получаем список участников
         conn = sqlite3.connect(self.db_path)
@@ -510,8 +504,9 @@ class SimpleRestaurantBot:
             await query.message.reply_text(
                 "🎉 Все участники подтвердили участие!\n\n"
                 "📅 Пожалуйста, выберите дату и время в формате:\n"
-                "**ДД.ММ.ГГГГ ЧЧ:ММ**\n\n"
-                "Например: 15.12.2025 19:00"
+                "*ДД.ММ.ГГГГ ЧЧ:ММ*\n\n"
+                "Например: 15.12.2025 19:00",
+                parse_mode='Markdown'
             )
             
             # Обновляем статус события
@@ -579,16 +574,14 @@ class SimpleRestaurantBot:
         visited_percentage = (visited_restaurants / total_restaurants * 100) if total_restaurants > 0 else 0
         completed_percentage = (completed_events / total_events * 100) if total_events > 0 else 0
         
-        stats_text = f"""
-📊 **Статистика ресторанов**
+        stats_text = f"""📊 *Статистика ресторанов*
 
-🍽️ **Всего ресторанов:** {total_restaurants}
-✅ **Посещено:** {visited_restaurants} ({visited_percentage:.1f}%)
-📅 **Всего событий:** {total_events}
-🎯 **Завершено:** {completed_events} ({completed_percentage:.1f}%)
+🍽️ *Всего ресторанов:* {total_restaurants}
+✅ *Посещено:* {visited_restaurants} ({visited_percentage:.1f}%)
+📅 *Всего событий:* {total_events}
+🎯 *Завершено:* {completed_events} ({completed_percentage:.1f}%)
 
-📝 **Последние отзывы:**
-        """
+📝 *Последние отзывы:*"""
         
         # Последние отзывы
         cursor.execute('''
@@ -607,7 +600,7 @@ class SimpleRestaurantBot:
             for review in reviews:
                 restaurant_name, rating, comment, username, created_at = review
                 stars = "⭐" * rating
-                stats_text += f"\n🍽️ **{restaurant_name}** {stars}\n👤 {username}: {comment}\n"
+                stats_text += f"\n🍽️ *{restaurant_name}* {stars}\n👤 {username}: {comment}\n"
         else:
             stats_text += "\nПока нет отзывов."
             
@@ -628,15 +621,13 @@ class SimpleRestaurantBot:
             'review_requested': '📝 Ожидает отзывов'
         }
         
-        event_text = f"""
-📅 **Ближайшее событие:**
+        event_text = f"""📅 *Ближайшее событие:*
 
-🍽️ **Ресторан:** {active_event['restaurant_name']}
-📊 **Статус:** {status_text.get(active_event['status'], active_event['status'])}
-        """
+🍽️ *Ресторан:* {active_event['restaurant_name']}
+📊 *Статус:* {status_text.get(active_event['status'], active_event['status'])}"""
         
         if active_event['datetime']:
-            event_text += f"\n🕐 **Время:** {active_event['datetime']}"
+            event_text += f"\n🕐 *Время:* {active_event['datetime']}"
             
         await update.message.reply_text(event_text, parse_mode='Markdown')
 
@@ -709,9 +700,9 @@ class SimpleRestaurantBot:
             conn.close()
             
             await update.message.reply_text(
-                f"✅ Время установлено: **{text}**\n\n"
-                f"🍽️ **{active_event['restaurant_name']}**\n"
-                f"📅 **Дата и время:** {text}\n\n"
+                f"✅ Время установлено: *{text}*\n\n"
+                f"🍽️ *{active_event['restaurant_name']}*\n"
+                f"📅 *Дата и время:* {text}\n\n"
                 f"Приятного аппетита! 🍴",
                 parse_mode='Markdown'
             )
@@ -719,7 +710,7 @@ class SimpleRestaurantBot:
         except ValueError:
             await update.message.reply_text(
                 "❌ Неверный формат даты.\n"
-                "Используйте формат: **ДД.ММ.ГГГГ ЧЧ:ММ**\n"
+                "Используйте формат: *ДД.ММ.ГГГГ ЧЧ:ММ*\n"
                 "Например: 15.12.2025 19:00",
                 parse_mode='Markdown'
             )
