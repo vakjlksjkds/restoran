@@ -1,0 +1,28 @@
+[Unit]
+Description=Restaurant Bot Service
+After=network.target
+
+[Service]
+Type=simple
+User=bot
+Group=bot
+WorkingDirectory=/opt/restaurant-bot
+Environment=PATH=/opt/restaurant-bot/venv/bin
+ExecStart=/opt/restaurant-bot/venv/bin/python perfect_bot.py
+Restart=always
+RestartSec=10
+
+# Логирование
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=restaurant-bot
+
+# Безопасность
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/restaurant-bot
+
+[Install]
+WantedBy=multi-user.target

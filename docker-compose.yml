@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  restaurant-bot:
+    build: .
+    container_name: restaurant-bot
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_USER_ID=${ADMIN_USER_ID}
+      - GROUP_CHAT_ID=${GROUP_CHAT_ID}
+    volumes:
+      - ./restaurant_bot.db:/app/restaurant_bot.db
+      - ./restaurants.json:/app/restaurants.json
+    networks:
+      - bot-network
+
+networks:
+  bot-network:
+    driver: bridge
