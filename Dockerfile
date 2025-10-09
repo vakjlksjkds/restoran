@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1
-# BOTHOST CACHE FORCE UPDATE
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -16,7 +15,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Папка для SQLite
-ENV DB_PATH=/app/restaurant_bot.db
+ENV DB_PATH=/app/bot.db
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "simple_bot.py"]
+CMD ["python", "main.py"]
