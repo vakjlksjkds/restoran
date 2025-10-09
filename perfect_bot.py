@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Perfect Restaurant Bot - Final Working Version
-Ready for hosting deployment
+BOTHOST DOCKERFILE FIX - CMD CORRECTED
 """
 
 import asyncio
