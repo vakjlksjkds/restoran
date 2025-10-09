@@ -1,69 +1,61 @@
 #!/usr/bin/env python3
 """
-Script to set bot commands in Telegram
-Run this script to register all bot commands with BotFather
+Утилита для регистрации команд бота в BotFather
 """
 
+import os
 import requests
-import json
+from dotenv import load_dotenv
 
-# Bot token
-BOT_TOKEN = "8245055843:AAEpOGcGRbvy1TkfQx4Jj2rAqQB15CbxQp0"
+# Загружаем переменные окружения
+load_dotenv()
 
-# Commands to register
-commands = [
-    {
-        "command": "start",
-        "description": "🚀 Запустить бота и получить помощь"
-    },
-    {
-        "command": "random", 
-        "description": "🎲 Выбрать случайный ресторан"
-    },
-    {
-        "command": "stats",
-        "description": "📊 Статистика по ресторанам"
-    },
-    {
-        "command": "cancel_event",
-        "description": "❌ Отменить событие (только админ)"
-    },
-    {
-        "command": "clear_reviews",
-        "description": "🗑️ Удалить все отзывы (только админ)"
-    },
-    {
-        "command": "next_event",
-        "description": "📅 Проверить ближайшее событие"
-    }
-]
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8245055843:AAEpOGcGRbvy1TkfQx4Jj2rAqQB15CbxQp0")
 
 def set_bot_commands():
-    """Set bot commands via Telegram API"""
+    """Установка команд бота"""
+    
+    commands = [
+        {
+            "command": "start",
+            "description": "Приветствие и инструкции"
+        },
+        {
+            "command": "random", 
+            "description": "Выбрать случайный ресторан"
+        },
+        {
+            "command": "stats",
+            "description": "Статистика посещений и отзывов"
+        },
+        {
+            "command": "next_event",
+            "description": "Ближайшее запланированное событие"
+        },
+        {
+            "command": "cancel_event",
+            "description": "Отменить событие (только админ)"
+        },
+        {
+            "command": "clear_reviews",
+            "description": "Очистить все отзывы (только админ)"
+        }
+    ]
+    
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/setMyCommands"
     
-    payload = {
-        "commands": commands
-    }
-    
     try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()
+        response = requests.post(url, json={"commands": commands})
         
-        result = response.json()
-        if result.get("ok"):
-            print("✅ Команды бота успешно зарегистрированы!")
-            print("\n📋 Зарегистрированные команды:")
-            for cmd in commands:
-                print(f"  /{cmd['command']} - {cmd['description']}")
-            print("\n🎉 Теперь команды будут отображаться при вводе '/' в чате!")
+        if response.status_code == 200:
+            print("✅ Команды успешно зарегистрированы!")
+            print("📱 Теперь команды будут отображаться при вводе / в чате")
         else:
-            print(f"❌ Ошибка: {result.get('description', 'Неизвестная ошибка')}")
+            print(f"❌ Ошибка: {response.status_code}")
+            print(f"Ответ: {response.text}")
             
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Ошибка сети: {e}")
     except Exception as e:
-        print(f"❌ Ошибка: {e}")
+        print(f"❌ Ошибка при регистрации команд: {e}")
 
 if __name__ == "__main__":
     print("🤖 Регистрация команд бота...")
