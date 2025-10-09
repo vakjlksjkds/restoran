@@ -352,7 +352,7 @@ class SimpleRestaurantBot:
 5. Оставьте отзыв после посещения
 
 Приятного аппетита! 🍴"""
-        await update.message.reply_text(welcome_text, parse_mode='Markdown')
+        await update.message.reply_text(welcome_text)
 
     async def random_restaurant(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Команда /random"""
