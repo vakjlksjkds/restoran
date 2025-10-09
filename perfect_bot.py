@@ -8,14 +8,19 @@ import logging
 import json
 import sqlite3
 import random
+import os
 from datetime import datetime
 from pathlib import Path
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.constants import ParseMode
+from dotenv import load_dotenv
 
 from notifications import NotificationSystem
+
+# Загружаем переменные окружения
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -25,10 +30,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-BOT_TOKEN = "8245055843:AAEpOGcGRbvy1TkfQx4Jj2rAqQB15CbxQp0"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8245055843:AAEpOGcGRbvy1TkfQx4Jj2rAqQB15CbxQp0")
 REQUIRED_CONFIRMATIONS = 3  # 3 человека + бот = 4 участника в группе
-ADMIN_USER_ID = None  # Set this to admin's user ID
-GROUP_CHAT_ID = None  # Set this to group chat ID
+ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "800133246"))  # ID администратора
+GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID", "-1001234567890"))  # ID группы
 
 class PerfectRestaurantBot:
     def __init__(self):
@@ -375,7 +380,7 @@ class PerfectRestaurantBot:
         
         await update.message.reply_text("✅ Все отзывы удалены администратором!")
     
-    def start_notifications(self):
+    async def start_notifications(self):
         """Start notification system"""
         if GROUP_CHAT_ID and not self.notification_system:
             self.notification_system = NotificationSystem(
@@ -920,9 +925,6 @@ def main():
     print("🤖 Bot started successfully!")
     print("📱 Add bot to your group and use /start command")
     print("🛑 Press Ctrl+C to stop")
-    
-    # Start notification system
-    bot.start_notifications()
     
     # Run the bot
     try:
